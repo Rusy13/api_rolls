@@ -51,7 +51,6 @@ async def create_roll(conn, roll_data: RollCreate):
 
 
 
-
 async def get_coil_stats(date_range):
     start_date = datetime.strptime(date_range.start_date, "%Y-%m-%d")
     end_date = datetime.strptime(date_range.end_date, "%Y-%m-%d")
@@ -99,6 +98,36 @@ async def get_coil_stats(date_range):
             )
             durations = await cursor.fetchone()
 
+            # Найдем дни с минимальным и максимальным количеством рулонов
+            await cursor.execute(
+                "SELECT date_added, COUNT(*) FROM rolls_roll WHERE date_added >= ? AND date_added <= ? GROUP BY date_added ORDER BY COUNT(*) ASC LIMIT 1",
+                (start_date, end_date)
+            )
+            min_count_date = await cursor.fetchone()
+            min_count_date = min_count_date[0] if min_count_date else None
+
+            await cursor.execute(
+                "SELECT date_added, COUNT(*) FROM rolls_roll WHERE date_added >= ? AND date_added <= ? GROUP BY date_added ORDER BY COUNT(*) DESC LIMIT 1",
+                (start_date, end_date)
+            )
+            max_count_date = await cursor.fetchone()
+            max_count_date = max_count_date[0] if max_count_date else None
+
+            # Найдем дни с минимальным и максимальным суммарным весом рулонов
+            await cursor.execute(
+                "SELECT date_added, SUM(weight) FROM rolls_roll WHERE date_added >= ? AND date_added <= ? GROUP BY date_added ORDER BY SUM(weight) ASC LIMIT 1",
+                (start_date, end_date)
+            )
+            min_weight_date = await cursor.fetchone()
+            min_weight_date = min_weight_date[0] if min_weight_date else None
+
+            await cursor.execute(
+                "SELECT date_added, SUM(weight) FROM rolls_roll WHERE date_added >= ? AND date_added <= ? GROUP BY date_added ORDER BY SUM(weight) DESC LIMIT 1",
+                (start_date, end_date)
+            )
+            max_weight_date = await cursor.fetchone()
+            max_weight_date = max_weight_date[0] if max_weight_date else None
+
     finally:
         await conn.close()
 
@@ -113,7 +142,11 @@ async def get_coil_stats(date_range):
         "min_weight": extrema[3],
         "total_weight": total_weight,
         "max_duration": durations[0],
-        "min_duration": durations[1]
+        "min_duration": durations[1],
+        "min_count_date": min_count_date,
+        "max_count_date": max_count_date,
+        "min_weight_date": min_weight_date,
+        "max_weight_date": max_weight_date
     }
 
 
