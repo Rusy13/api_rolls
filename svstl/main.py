@@ -27,8 +27,14 @@ class DateRange(BaseModel):
 
 # Эта функция создает подключение к базе данных SQLite3
 async def connect_db():
-    conn = await aiosqlite.connect("db.sqlite3")
-    return conn
+    try:
+        conn = await aiosqlite.connect("db.sqlite3")
+        return conn
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Database connection error")
+
+
+
 
 # Эта функция создает новый рулон
 async def create_roll(conn, roll_data: RollCreate):
